@@ -48,9 +48,7 @@ def move_by_best_policy():
     print('Start Position: ({}, {})'.format(
         current_state // env.shape[1], current_state % env.shape[1]))
 
-    print('===========')
     env._render()
-    print('===========')
 
     done = False
     while not done:
@@ -59,9 +57,7 @@ def move_by_best_policy():
 
         current_state = observation
         print('Action: {}'.format(directions[action]))
-        print('===========')
         env._render()
-        print('===========')
 
 
 class PolicyIteration():
@@ -83,14 +79,16 @@ class PolicyIteration():
         return cls.policy
 
     @classmethod
-    def policy_evaluation(cls):
+    def policy_evaluation(cls, policy=None):
+        if policy == None:
+            policy = cls.policy
         V = np.zeros(cls.env.nS)
 
         while True:
             delta = 0
             for s in range(cls.env.nS):
                 v = 0
-                for a, action_prob in enumerate(cls.policy[s]):
+                for a, action_prob in enumerate(policy[s]):
                     for prob, next_state, reward, done in cls.env.P[s][a]:
                         v += action_prob * prob * \
                             (reward + cls.discount_factor * V[next_state])

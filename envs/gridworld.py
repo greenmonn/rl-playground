@@ -94,9 +94,11 @@ class GridworldEnv(discrete.DiscreteEnv):
             return
 
         outfile = io.StringIO() if mode == 'ansi' else sys.stdout
-
         grid = np.arange(self.nS).reshape(self.shape)
         it = np.nditer(grid, flags=['multi_index'])
+
+        outfile.write('==' * self.shape[1] + '==\n')
+
         while not it.finished:
             s = it.iterindex
             y, x = it.multi_index
@@ -119,3 +121,5 @@ class GridworldEnv(discrete.DiscreteEnv):
                 outfile.write("\n")
 
             it.iternext()
+
+        outfile.write('==' * self.shape[1] + '==\n')
