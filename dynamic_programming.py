@@ -3,6 +3,8 @@ import pprint
 import sys
 from envs.gridworld import GridworldEnv
 
+# TODO (discuss) reward: receive 0.0 when terminal state, but -1.0 when just entering the terminal state
+# should fix?
 
 def evaluate_random_policy():
     env = GridworldEnv()
@@ -33,6 +35,7 @@ def move_agent(env):
         current_state = observation
         print('Action: {}'.format(directions[action]))
         print('Reward: {}'.format(reward))
+        print('Done: {}'.format(done))
         env._render()
 
 def move_by_value_iteration():
@@ -105,6 +108,7 @@ class DP():
             for s in range(cls.env.nS):
                 v = 0
                 for a, action_prob in enumerate(policy[s]):
+                    # Not known in RL
                     for prob, next_state, reward, done in cls.env.P[s][a]:
                         v += action_prob * prob * \
                             (reward + cls.discount_factor * V[next_state])
@@ -124,28 +128,14 @@ class DP():
         policy_stable = True
 
         for s in range(cls.env.nS):
-            chosen_a = np.argmax(cls.policy[s])
+            chosen_action = np.argmax(cls.policy[s])
 
             action_values = cls.one_step_lookahead(s, V)
+            best_action = np.argmax(action_values)
 
-            # Use list: breaking the tie
-            max_indices = []
-            max_value = -99999
-            for i, value in enumerate(action_values):
-                if value == max_value:
-                    max_indices.append(i)
-                elif value > max_value:
-                    max_indices = [i]
-                    max_value = value
+            cls.policy[s] = np.eye(cls.env.nA)[best_action]
 
-            improved_policy = [0] * cls.env.nA
-            prob = 1 / len(max_indices)
-            for i in max_indices:
-                improved_policy[i] = prob
-
-            cls.policy[s] = improved_policy
-
-            if chosen_a not in max_indices:
+            if chosen_action != best_action:
                 policy_stable = False
 
         return policy_stable, V
@@ -167,22 +157,9 @@ class DP():
         cls.policy = np.zeros([cls.env.nS, cls.env.nA])
         for s in range(cls.env.nS):
             action_values = cls.one_step_lookahead(s, V)
-            # Use list: breaking the tie
-            max_indices = []
-            max_value = -99999
-            for i, value in enumerate(action_values):
-                if value == max_value:
-                    max_indices.append(i)
-                elif value > max_value:
-                    max_indices = [i]
-                    max_value = value
+            best_action = np.argmax(action_values)
 
-            improved_policy = [0] * cls.env.nA
-            prob = 1 / len(max_indices)
-            for i in max_indices:
-                improved_policy[i] = prob
-
-            cls.policy[s] = improved_policy
+            cls.policy[s] = np.eye(cls.env.nA)[best_action]
         
         return cls.policy, V
 
