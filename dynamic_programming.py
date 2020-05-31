@@ -8,7 +8,10 @@ from queue import PriorityQueue
 # TODO (discuss) reward: receive 0.0 when terminal state, but -1.0 when just entering the terminal state
 # should fix?
 
-# Activity: how to break ties?
+# TODO show convergence difference (in what environment?? in this simple gridworld doesn't show difference...)
+# TODO show gridworld GUI
+
+# Activity Idea: how to break ties?
 
 
 class DP():
