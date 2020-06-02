@@ -79,6 +79,16 @@ class GridworldEnv(discrete.DiscreteEnv):
         # This should not be used in any model-free learning algorithm
         self.P = P
 
+        # Prepare state transition tensor and reward tensor
+        self.P_tensor = np.zeros(shape=(nA, nS, nS))
+        self.R_tensor = np.zeros(shape=(nS, nA))
+
+        for s in self.P.keys():
+            for a in self.P[s].keys():
+                p_sa, s_prime, r, done = self.P[s][a][0]
+                self.P_tensor[a, s, s_prime] = p_sa
+                self.R_tensor[s, a] = r
+
         super(GridworldEnv, self).__init__(nS, nA, P, isd)
 
     def _render(self, mode='human', close=False):
