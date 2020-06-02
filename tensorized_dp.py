@@ -31,6 +31,9 @@ class TensorDP:
         print("Tensor DP agent initialized")
         print("Environment spec:  Num. state = {} | Num. actions = {} ".format(env.nS, env.nA))
 
+    def reset_policy(self):
+        self.policy = np.ones([self.ns, self.na]) / self.na
+
     def set_policy(self, policy):
         assert self.policy.shape == policy.shape
         self.policy = policy
@@ -44,10 +47,12 @@ class TensorDP:
         return p_pi
 
     def policy_evaluation(self, policy=None, v_init=None):
-        # To-Do : check dimension consistency
         """
         :param policy: policy to evaluate (optional)
         :param v_init: initial value 'guesstimation' (optional)
+        :param steps: steps of bellman expectation backup (optional)
+        if none, repeat the backup until converge.
+
         :return: v_pi: value function of the input policy
         """
         if policy is None:
@@ -71,6 +76,7 @@ class TensorDP:
                 break
             else:
                 v_old = v_new
+
         return v_new
 
     def policy_improvement(self, policy=None, v_pi=None):
@@ -88,3 +94,83 @@ class TensorDP:
         policy_improved = np.zeros_like(policy)
         policy_improved[np.arange(q_pi.shape[1]), q_pi.argmax(axis=0)] = 1
         return policy_improved
+
+    def policy_iteration(self, policy=None):
+        if policy is None:
+            pi_old = self.policy
+        else:
+            pi_old = policy
+
+        info = dict()
+        info['v'] = list()
+        info['pi'] = list()
+        info['converge'] = None
+
+        steps = 0
+        converged = False
+        while True:
+            v_old = self.policy_evaluation(pi_old)
+            pi_improved = self.policy_improvement(pi_old, v_old)
+            steps += 1
+
+            info['v'].append(v_old)
+            info['pi'].append(pi_old)
+
+            # check convergence
+            policy_gap = np.linalg.norm(pi_improved - pi_old)
+
+            if policy_gap <= self.error_tol:
+                if not converged:  # record the first moment of within error tolerance.
+                    info['converge'] = steps
+                break
+            else:
+                pi_old = pi_improved
+        return info
+
+    def value_iteration(self, v_init=None, compute_pi=False):
+        """
+        :param v_init: (np.array) initial value 'guesstimation' (optional)
+        :param compute_pi: (bool) compute policy during VI
+        :return: v_opt: the optimal value function
+        """
+
+        if v_init is not None:
+            v_old = v_init
+        else:
+            v_old = np.zeros(self.ns)
+
+        info = dict()
+        info['v'] = list()
+        info['pi'] = list()
+        info['converge'] = None
+
+        steps = 0
+        converged = False
+
+        while True:
+            # Bellman optimality backup
+            v_improved = (self.R.T + self.P.dot(v_old)).max(axis=0)
+            info['v'].append(v_improved)
+
+            if compute_pi:
+                # compute policy from v
+                # 1) Compute v -> q
+                q_pi = (self.R.T + self.P.dot(v_improved))
+
+                # 2) Construct greedy policy
+                pi = np.zeros_like(self.policy)
+                pi[np.arange(q_pi.shape[1]), q_pi.argmax(axis=0)] = 1
+                info['pi'].append(pi)
+
+            steps += 1
+
+            # check convergence
+            policy_gap = np.linalg.norm(v_improved - v_old)
+
+            if policy_gap <= self.error_tol:
+                if not converged:  # record the first moment of within error tolerance.
+                    info['converge'] = steps
+                break
+            else:
+                v_old = v_improved
+        return info

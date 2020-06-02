@@ -1,20 +1,12 @@
-from dynamic_programming import DP
+from tensorized_dp import TensorDP
 from envs.gridworld import GridworldEnv
 
 if __name__ == '__main__':
-    env = GridworldEnv([4, 4])
+    nx = 5
+    ny = 5
+    env = GridworldEnv([nx, ny])
 
-    dp_agent = DP(env=env)
-    p, v = dp_agent.policy_iteration()
-    print(p)
-    print(v)
+    dp_agent = TensorDP()
+    dp_agent.set_env(env)
 
-    dp_agent2 = DP(env=env)
-    p, v = dp_agent2.value_iteration()
-    print(p)
-    print(v)
-
-    dp_agent3 = DP(is_prioritised=True, env=env)
-    p, v = dp_agent3.value_iteration()
-    print(p)
-    print(v)
+    info = dp_agent.policy_iteration()
