@@ -18,7 +18,7 @@ def visualize_value_function(ax,  # matplotlib axes object
     # annotate value of value functions on heat map
     for i in range(ny):
         for j in range(nx):
-            cell_v = v_pi.reshape(nx, ny)[nx - 1 - i, ny - 1 - j]
+            cell_v = v_pi.reshape(nx, ny)[j, i]
             text_color = "w" if cell_v < threshold else "black"
             cell_v = "{:.2f}".format(cell_v)
             ax.text(i, j, cell_v, ha="center", va="center", color="w")
@@ -26,10 +26,9 @@ def visualize_value_function(ax,  # matplotlib axes object
 def visualize_policy(ax, pi: np.array, nx: int, ny: int):
 
     d_symbols = ['↑', '→', '↓', '←'] 
-    
     pi = np.array(list(map(np.argmax, pi))).reshape(nx, ny)
-    ax.imshow(pi,
-                     interpolation='nearest', cmap=plt.get_cmap('Paired'))
+
+    ax.imshow(pi, interpolation='nearest', cmap=plt.get_cmap('Paired'))
 
     ax.set_xticks(np.arange(pi.shape[1]))
     ax.set_yticks(np.arange(pi.shape[0]))
@@ -48,6 +47,6 @@ def visualize_policy(ax, pi: np.array, nx: int, ny: int):
 
     for i in range(ny):
         for j in range(nx):
-            direction = pi.reshape(nx, ny)[nx - 1 - i, ny - 1 - j]
+            direction = pi[j, i]
             direction = d_symbols[direction]
             ax.text(i, j, direction, ha="center", va="center", color="black", fontsize=20)
