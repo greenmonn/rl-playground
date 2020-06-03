@@ -5,6 +5,7 @@ from envs.gridworld import GridworldEnv
 
 from queue import PriorityQueue
 
+
 # TODO (discuss) reward: receive 0.0 when terminal state, but -1.0 when just entering the terminal state
 # should fix?
 
@@ -14,17 +15,22 @@ from queue import PriorityQueue
 # Activity Idea: how to break ties?
 
 
-class DP():
+class DP:
     def __init__(self, is_synchronous=False, is_prioritised=False, env=None):
         self.discount_factor = 1.0
-        self.theta = 0.00001
-        self.delta_list = []    # to check convergence
+        self.theta = 0.01
+        self.delta_list = []  # to check convergence
+        self.max_bellman_error_list = []
         self.is_synchronous = is_synchronous
         self.is_prioritised = is_prioritised
+        self.opt_value = None
 
-        if env != None:
+        if env is not None:
             self.env = env
             self.policy = np.ones([env.nS, env.nA]) / env.nA
+
+            self.policy = np.random.rand(env.nS, env.nA)
+            self.policy /= self.policy.sum(axis=-1).reshape(-1,1)
 
     def set_env(self, env):
         self.env = env
@@ -35,31 +41,33 @@ class DP():
 
         while not policy_stable:
             policy_stable, V = self.policy_improvement()
+            print("hi")
 
         return self.policy, V
 
     def policy_evaluation(self, policy=None):
-        if policy == None:
+        if policy is None:
             policy = self.policy
-        V = np.zeros(self.env.nS)
 
+        prev_v = np.zeros(self.env.nS)
         while True:
-            max_delta = 0
+            next_v = np.zeros(self.env.nS)
             for s in range(self.env.nS):
                 v = 0
                 for a, action_prob in enumerate(policy[s]):
-                    # Not known in RL
                     for prob, next_state, reward, done in self.env.P[s][a]:
                         v += action_prob * prob * \
-                            (reward + self.discount_factor * V[next_state])
+                             (reward  + self.discount_factor * prev_v[next_state])
 
-                max_delta = max(max_delta, np.abs(v - V[s]))
-                V[s] = v
+                next_v[s] = v
 
+            max_delta = max(np.abs(next_v - prev_v))
             if max_delta < self.theta:
                 break
+            else:
+                prev_v = next_v
 
-        return np.array(V)
+        return next_v
 
     def policy_improvement(self):
         V = self.policy_evaluation()
@@ -86,6 +94,7 @@ class DP():
             bellman_errors.put((0, s))
 
         while True:
+            print("hi in pr VI")
             max_delta = 0
             sum_delta = 0
 
@@ -96,49 +105,52 @@ class DP():
 
                 action_values = self.one_step_lookahead(s, V)
                 best_action_value = np.max(action_values)
-                
+
                 error = abs(best_action_value - V[s])
                 bellman_errors_next.put((-error, s))
                 max_delta = max(max_delta, error)
                 sum_delta += error
 
                 V[s] = best_action_value
-            
+
             bellman_errors = bellman_errors_next
-            
+            if self.opt_value is not None:
+                max_bellman_error = max(self.opt_value - V)
+                self.max_bellman_error_list.append(max_bellman_error)
             self.delta_list.append(sum_delta / self.env.nS)
             if max_delta < self.theta:
                 break
-        
+
         return V
 
     def _update_value(self, V):
         while True:
+            print("hi in VI")
             max_delta = 0
             sum_delta = 0
 
-            V_new = np.zeros(self.env.nS) # only used in synchronous case
+            V_new = np.zeros(self.env.nS)  # only used in synchronous case
 
             for s in range(self.env.nS):
                 action_values = self.one_step_lookahead(s, V)
                 best_action_value = np.max(action_values)
-                
+
                 error = np.abs(best_action_value - V[s])
                 max_delta = max(max_delta, error)
                 sum_delta += error
 
                 if self.is_synchronous:
-                    V_new[s] = best_action_value        
+                    V_new[s] = best_action_value
                 else:
                     V[s] = best_action_value
 
             if self.is_synchronous:
                 V = V_new
-            
+
             self.delta_list.append(sum_delta / self.env.nS)
             if max_delta < self.theta:
                 break
-        
+
         return V
 
     def value_iteration(self):
@@ -148,28 +160,26 @@ class DP():
             V = self._update_value_prioritised(V)
         else:
             V = self._update_value(V)
-        
+
         self.policy = np.zeros([self.env.nS, self.env.nA])
         for s in range(self.env.nS):
             action_values = self.one_step_lookahead(s, V)
             best_action = np.argmax(action_values)
 
             self.policy[s] = np.eye(self.env.nA)[best_action]
-        
+
         return self.policy, V
 
     def get_action(self, state):
         return np.argmax(self.policy[state])
 
     def one_step_lookahead(self, state, V):
-            A = np.zeros(self.env.nA)
-            for a in range(self.env.nA):
-                for prob, next_state, reward, done in self.env.P[state][a]:
-                    A[a] += prob * \
+        A = np.zeros(self.env.nA)
+        for a in range(self.env.nA):
+            for prob, next_state, reward, done in self.env.P[state][a]:
+                A[a] += prob * \
                         (reward + self.discount_factor * V[next_state])
-            return A
-
-
+        return A
 
 
 def evaluate_random_policy():
@@ -183,6 +193,7 @@ def evaluate_random_policy():
     print("Value Function:")
     print(v.reshape(env.shape))
     print("")
+
 
 def compare_value_iterations():
     env = GridworldEnv(shape=[20, 20])
@@ -215,7 +226,7 @@ def compare_value_iterations():
     print("")
 
     policy, V = dp_async_prioritised.value_iteration()
-    
+
     print("Grid Policy By Synchronous DP (0=up, 1=right, 2=down, 3=left):")
     print(np.reshape(np.argmax(policy, axis=1), env.shape))
     print("")
@@ -249,6 +260,7 @@ def _move(env, agent):
         print('Done: {}'.format(done))
         env._render()
 
+
 def move_by_value_iteration():
     env = GridworldEnv()
     dp_solver = DP()
@@ -270,6 +282,7 @@ def move_by_value_iteration():
 
     _move(env, dp_solver)
 
+
 def move_by_policy_iteration():
     env = GridworldEnv()
     dp_solver = DP()
@@ -290,7 +303,6 @@ def move_by_policy_iteration():
     print("")
 
     _move(env, dp_solver)
-
 
 
 if __name__ == "__main__":
