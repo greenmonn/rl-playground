@@ -86,7 +86,7 @@ class TensorDP:
         if v_pi is None:
             v_pi = self.policy_evaluation(policy)
 
-        # Compute Q_pi_(s,a) from V_pi(s)
+        # Compute Q_pi(s,a) from V_pi(s)
         r_pi = self.get_r_pi(policy)
         q_pi = r_pi + self.P.dot(v_pi)
 
