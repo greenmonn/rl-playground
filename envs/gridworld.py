@@ -2,6 +2,7 @@ import io
 import numpy as np
 import sys
 from gym.envs.toy_text import discrete
+from copy import deepcopy as dc
 
 UP = 0
 RIGHT = 1
@@ -90,7 +91,10 @@ class GridworldEnv(discrete.DiscreteEnv):
                 self.R_tensor[s, a] = r
 
         super(GridworldEnv, self).__init__(nS, nA, P, isd)
-
+    
+    def observe(self):
+        return dc(self.s)
+    
     def _render(self, mode='human', close=False):
         """ Renders the current gridworld layout
          For example, a 4x4 grid with the mode="human" looks like:
