@@ -33,7 +33,7 @@ class AsyncDP:
         print("Environment spec:  Num. state = {} | Num. actions = {} ".format(env.nS, env.nA))
 
     def compute_q_from_v(self, value):
-        return self.R.T + self.P.dot(value)  # [num. actions x num. states]
+        return self.R.T + self.gamma * self.P.dot(value)  # [num. actions x num. states]
 
     def construct_policy_from_v(self, value):
         qs = self.compute_q_from_v(value)  # [num. actions x num. states]
@@ -75,7 +75,11 @@ class AsyncDP:
             for s in range(self.ns):
                 # Bellman expectation backup of current state in in-place fashion
                 # get Q values of given state 's'
+
+                # output of 'self.compute_q_from_v(value)' is a tensor
+                # with the shape of [num. actions X num. states].
                 qs = self.compute_q_from_v(value)[:, s]
+
                 v = qs.max(axis=0)  # get max value along the actions
 
                 # accumulate the deviation from the current state s

@@ -149,13 +149,13 @@ class TensorDP:
 
         while True:
             # Bellman optimality backup
-            v_improved = (self.R.T + self.P.dot(v_old)).max(axis=0)
+            v_improved = (self.R.T + self.gamma * self.P.dot(v_old)).max(axis=0)
             info['v'].append(v_improved)
 
             if compute_pi:
                 # compute policy from v
                 # 1) Compute v -> q
-                q_pi = (self.R.T + self.P.dot(v_improved))
+                q_pi = (self.R.T + self.gamma * self.P.dot(v_improved))
 
                 # 2) Construct greedy policy
                 pi = np.zeros_like(self.policy)
