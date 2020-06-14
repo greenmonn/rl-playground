@@ -91,6 +91,9 @@ class ExactMCAgent:
         self.reset_values()
         self.reset_statistics()
 
+    def decaying_epsilon(self, factor):
+        self.epsilon *= factor
+
 
 class MCAgent(ExactMCAgent):
     """
@@ -143,7 +146,7 @@ def run_episode(env, agent, timeout=1000):
     i = 0
     timeouted = False
     while True:
-        state = env.observe()
+        state = env.s
         action = agent.get_action(state)
         next_state, reward, done, info = env.step(action)
 

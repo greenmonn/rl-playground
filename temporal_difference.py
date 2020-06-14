@@ -31,7 +31,7 @@ class TDAgent:
         self.q = np.zeros(shape=(self.num_states, self.num_actions))
 
     def reset_policy(self):
-        self._policy_q = np.zeros(shape=(self.num_states, self.num_actions))
+        self.q = np.zeros(shape=(self.num_states, self.num_actions))
 
     def get_action(self, state):
         prob = np.random.uniform(0.0, 1.0, 1)
@@ -39,7 +39,7 @@ class TDAgent:
         if prob <= self.epsilon:  # random
             action = np.random.choice(range(self.num_actions))
         else:  # greedy
-            action = self._policy_q[state, :].argmax()
+            action = self.q[state, :].argmax()
         return action
 
     def update(self, episode):
@@ -54,3 +54,76 @@ class TDAgent:
             # TD target
             td_target = r + self.gamma * self.v[ns] * (1 - done)
             self.v[s] += self.lr * (td_target - self.v[s])
+
+    def decaying_epsilon(self, factor):
+        self.epsilon *= factor
+
+
+class SARSA(TDAgent):
+
+    def __init__(self,
+                 gamma: float,
+                 num_states: int,
+                 num_actions: int,
+                 epsilon: float,
+                 lr: float):
+        super(SARSA, self).__init__(gamma=gamma,
+                                    num_states=num_states,
+                                    num_actions=num_actions,
+                                    epsilon=epsilon,
+                                    lr=lr)
+
+    def reset_values(self):
+        self.q = np.zeros(shape=(self.num_states, self.num_actions))
+
+    def update(self, episode):
+        states, actions, rewards = episode
+        next_states = states[1:] + [-1]  # -1 is a place holder
+        dones = np.zeros_like(states)
+        dones[-1] = 1
+
+        for s, a, r, ns, done in zip(states, actions, rewards, next_states, dones):
+            # SARSA target
+            a_next = self.get_action(ns)
+            td_target = r + self.gamma * self.q[ns, a_next] * (1 - done)
+            self.q[s, a] += self.lr * (td_target - self.q[s, a])
+
+    def update_sample(self, state, action, reward, next_state, done):
+        s, a, r, ns = state, action, reward, next_state
+        a_next = self.get_action(ns)
+        td_target = r + self.gamma * self.q[ns, a_next] * (1 - done)
+        self.q[s, a] += self.lr * (td_target - self.q[s, a])
+
+
+class QLeaner(TDAgent):
+
+    def __init__(self,
+                 gamma: float,
+                 num_states: int,
+                 num_actions: int,
+                 epsilon: float,
+                 lr: float):
+        super(QLeaner, self).__init__(gamma=gamma,
+                                      num_states=num_states,
+                                      num_actions=num_actions,
+                                      epsilon=epsilon,
+                                      lr=lr)
+
+    def reset_values(self):
+        self.q = np.zeros(shape=(self.num_states, self.num_actions))
+
+    def update(self, episode):
+        states, actions, rewards = episode
+        next_states = states[1:] + [-1]  # -1 is a place holder
+        dones = np.zeros_like(states)
+        dones[-1] = 1
+
+        for s, a, r, ns, done in zip(states, actions, rewards, next_states, dones):
+            # Q-Learning target
+            td_target = r + self.gamma * self.q[ns, :].max() * (1 - done)
+            self.q[s, a] += self.lr * (td_target - self.q[s, a])
+
+    def update_sample(self, state, action, reward, next_state, done):
+        s, a, r, ns = state, action, reward, next_state
+        td_target = r + self.gamma * self.q[ns, :].max() * (1 - done)
+        self.q[s, a] += self.lr * (td_target - self.q[s, a])
