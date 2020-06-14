@@ -3,13 +3,16 @@ import matplotlib.pyplot as plt
 
 threshold = -1.0
 
+
 def visualize_value_function(ax,  # matplotlib axes object
                              v_pi: np.array,
                              nx: int,
-                             ny: int):
+                             ny: int,
+                             plot_cbar=True):
     hmap = ax.imshow(v_pi.reshape(nx, ny),
                      interpolation='nearest')
-    cbar = ax.figure.colorbar(hmap, ax=ax)
+    if plot_cbar:
+        cbar = ax.figure.colorbar(hmap, ax=ax)
 
     # disable x,y ticks for better visibility
     _ = ax.set_xticks([])
@@ -23,9 +26,9 @@ def visualize_value_function(ax,  # matplotlib axes object
             cell_v = "{:.2f}".format(cell_v)
             ax.text(i, j, cell_v, ha="center", va="center", color="w")
 
-def visualize_policy(ax, pi: np.array, nx: int, ny: int):
 
-    d_symbols = ['↑', '→', '↓', '←'] 
+def visualize_policy(ax, pi: np.array, nx: int, ny: int):
+    d_symbols = ['↑', '→', '↓', '←']
     pi = np.array(list(map(np.argmax, pi))).reshape(nx, ny)
 
     ax.imshow(pi, interpolation='nearest', cmap=plt.get_cmap('Paired'))
@@ -35,8 +38,8 @@ def visualize_policy(ax, pi: np.array, nx: int, ny: int):
     for edge, spine in ax.spines.items():
         spine.set_visible(False)
 
-    ax.set_xticks(np.arange(pi.shape[1]+1)-.5, minor=True)
-    ax.set_yticks(np.arange(pi.shape[0]+1)-.5, minor=True)
+    ax.set_xticks(np.arange(pi.shape[1] + 1) - .5, minor=True)
+    ax.set_yticks(np.arange(pi.shape[0] + 1) - .5, minor=True)
     ax.set_xticklabels([])
     ax.set_yticklabels([])
     ax.tick_params(axis='x', colors='w')
