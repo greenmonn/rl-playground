@@ -1,21 +1,25 @@
 import numpy as np
 
 
-class MCAgent:
+class ExactMCAgent:
+    """
+    The exact Monte-Carlo agent.
+    This agents performs value update as follows:
+    V(s) <- s(s) / n(s)
+    Q(s,a) <- s(s,a) / n(s,a)
+    """
 
     def __init__(self,
                  gamma: float,
-                 lr: float,
                  num_states: int,
                  num_actions: int,
                  epsilon: float):
         self.gamma = gamma
-        self.lr = lr
         self.num_states = num_states
         self.num_actions = num_actions
         self.epsilon = epsilon
 
-        self._eps = 1e-5 # for stable computation of V and Q. NOT the one for e-greedy !
+        self._eps = 1e-10  # for stable computation of V and Q. NOT the one for e-greedy !
 
         # Initialize statistics
         self.n_v = None
@@ -29,6 +33,11 @@ class MCAgent:
         self.q = None
         self.reset_values()
 
+        # Initialize "policy Q"
+        # "policy Q" is the one used for policy generation.
+        self._policy_q = None
+        self.reset_policy()
+
     def reset_statistics(self):
         self.n_v = np.zeros(shape=self.num_states)
         self.s_v = np.zeros(shape=self.num_states)
@@ -40,7 +49,10 @@ class MCAgent:
         self.v = np.zeros(shape=self.num_states)
         self.q = np.zeros(shape=(self.num_states, self.num_actions))
 
-    def update_stats(self, episode):
+    def reset_policy(self):
+        self._policy_q = np.zeros(shape=(self.num_states, self.num_actions))
+
+    def update(self, episode):
         states, actions, rewards = episode
 
         # reversing the inputs!
@@ -71,25 +83,65 @@ class MCAgent:
         if prob <= self.epsilon:  # random
             action = np.random.choice(range(self.num_actions))
         else:  # greedy
-            action = self.q[state, :].argmax()
+            action = self._policy_q[state, :].argmax()
         return action
 
-    def update_values(self, state):
-        pass
+    def improve_policy(self):
+        self._policy_q = self.q.copy()
+        self.reset_values()
+        self.reset_statistics()
+
+
+class MCAgent(ExactMCAgent):
+    """
+    The 'learning-rate' Monte-Carlo agent.
+    This agents performs value update as follows:
+    V(s) <- V(s) + lr * (Gt - V(s))
+    Q(s,a) <- Q(s,a) + lr * (Gt - Q(s,a))
+    """
+
+    def __init__(self,
+                 gamma: float,
+                 num_states: int,
+                 num_actions: int,
+                 epsilon: float,
+                 lr: float):
+        super(MCAgent, self).__init__(gamma=gamma,
+                                      num_states=num_states,
+                                      num_actions=num_actions,
+                                      epsilon=epsilon)
+        self.lr = lr
+
+    def update(self, episode):
+        states, actions, rewards = episode
+
+        # reversing the inputs!
+        # for efficient computation of returns
+        states = reversed(states)
+        actions = reversed(actions)
+        rewards = reversed(rewards)
+
+        iter = zip(states, actions, rewards)
+        cum_r = 0
+        for s, a, r in iter:
+            cum_r *= self.gamma
+            cum_r += r
+
+            self.v[s] += self.lr * (cum_r - self.v[s])
+            self.q[s, a] += self.lr * (cum_r - self.q[s, a])
 
     def improve_policy(self):
-        self.reset_memory()
-
-    def reset_policy(self):
-        pass
+        self._policy_q = self.q.copy()
 
 
-def run_episode(env, agent):
+def run_episode(env, agent, timeout=1000):
     env.reset()
     states = []
     actions = []
     rewards = []
 
+    i = 0
+    timeouted = False
     while True:
         state = env.observe()
         action = agent.get_action(state)
@@ -101,9 +153,15 @@ def run_episode(env, agent):
 
         if done:
             break
+        else:
+            i += 1
+            if i >= timeout:
+                timeouted = True
+                break
 
-    episode = (states, actions, rewards)
-    agent.update_stats(episode)
+    if not timeouted:
+        episode = (states, actions, rewards)
+        agent.update(episode)
 
 
 if __name__ == '__main__':
