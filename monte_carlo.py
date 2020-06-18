@@ -52,6 +52,11 @@ class ExactMCAgent:
     def reset_policy(self):
         self._policy_q = np.zeros(shape=(self.num_states, self.num_actions))
 
+    def reset(self):
+        self.reset_statistics()
+        self.reset_values()
+        self.reset_policy()
+
     def update(self, episode):
         states, actions, rewards = episode
 
