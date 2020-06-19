@@ -93,8 +93,7 @@ class ExactMCAgent:
 
     def improve_policy(self):
         self._policy_q = self.q.copy()
-        self.reset_values()
-        self.reset_statistics()
+        #self.reset_statistics()
 
     def decaying_epsilon(self, factor):
         self.epsilon *= factor
@@ -137,9 +136,6 @@ class MCAgent(ExactMCAgent):
 
             self.v[s] += self.lr * (cum_r - self.v[s])
             self.q[s, a] += self.lr * (cum_r - self.q[s, a])
-
-    def improve_policy(self):
-        self._policy_q = self.q.copy()
 
 
 def run_episode(env, agent, timeout=1000):
