@@ -103,7 +103,7 @@ class SARSA(TDAgent):
         self.q[s, a] += self.lr * (td_target - self.q[s, a])
 
 
-class QLeaner(TDAgent):
+class QLearner(TDAgent):
 
     def __init__(self,
                  gamma: float,
@@ -111,12 +111,12 @@ class QLeaner(TDAgent):
                  num_actions: int,
                  epsilon: float,
                  lr: float):
-        super(QLeaner, self).__init__(gamma=gamma,
-                                      num_states=num_states,
-                                      num_actions=num_actions,
-                                      epsilon=epsilon,
-                                      lr=lr,
-                                      n_step=1)
+        super(QLearner, self).__init__(gamma=gamma,
+                                       num_states=num_states,
+                                       num_actions=num_actions,
+                                       epsilon=epsilon,
+                                       lr=lr,
+                                       n_step=1)
 
     def get_action(self, state, mode='train'):
         if mode == 'train':
